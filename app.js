@@ -1,13 +1,17 @@
 require("dotenv").config();
+const cron = require("node-cron");
 const { Telegraf } = require("telegraf");
 const checkerServices = require("./services/checker");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const WARN_DAYS = 300;
+const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
+const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
+const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_MONIT_SERVER : process.env.ID_MY;
+
+const bot = new Telegraf(BOT_TOKEN);
 
 bot.command("/start", (ctx) => {
   ctx.telegram.sendMessage(ctx.chat.id, "Hello I'm IT Support BOT :)");
@@ -18,26 +22,38 @@ bot.command("/format", (ctx) => {
 })
 
 bot.command("/ssl", async (ctx) => {
-  const { text: msg } = ctx.message;
-  const [,
-    action,
-    nama,
-    domain,
-    port,
-    tempat,
-  ] = msg.split("#") || "";
-
-  if (action === "Tambah") {
-    const addedDomainSsl = await mysqlServices.insertIntoSslDomain(nama, domain, port, tempat);
-    addedDomainSsl.affectedRows >= 1 ?
-      ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Cek SSL Baru") :
-      ctx.telegram.sendMessage(ctx.chat.id, "Gagal Menambahkan Domain Cek SSL Baru");
-    const sslStatus = await checkerServices.sslChecker(domain, port);
-    ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
-    const updatedSslExpired = await mysqlServices.updateSslExpired(domain, sslStatus.expired);
-    updatedSslExpired.affectedRows >= 1 ? 
-      ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Memperbarui Expired SSL") :
-      ctx.telegram.sendMessage(ctx.chat.id, "Gagal Memperbarui Expired SSL");
+  try {
+    const { text: msg } = ctx.message;  
+    const [,
+      action,
+      nama,
+      domain,
+      port,
+      tempat,
+    ] = msg.split("#") || "";
+  
+    if (action === "Tambah") {
+      await mysqlServices.checkAvailableSslDomain(domain);
+      await mysqlServices.insertIntoSslDomain(nama, domain, port, tempat);
+      await ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Cek SSL Baru");
+      const sslStatus = await checkerServices.sslChecker(domain, port);
+      await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
+    }
+  } catch (error) {
+    switch (error.message) {
+      case "SSL_DOMAIN_AVAILABLE":
+        ctx.telegram.sendMessage(ctx.chat.id, "SSL Domain Sudah Tersedia");
+        const sslStatus = await checkerServices.sslChecker(domain, port);
+        await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
+        break;
+      case "INSERT_SSL_DOMAIN_FAILED":
+        ctx.telegram.sendMessage(ctx.chat.id, "Gagal Menambahkan SSL Domain");
+        break;
+      default:
+        console.log(error);
+        ctx.telegram.sendMessage(ctx.chat.id, "Terjadi Kegagalan Saat Aksi /ssl");
+        break;
+    }   
   }
 });
 
@@ -48,137 +64,106 @@ bot.command("/domain", async (ctx) => {
     hosting,
     domain,
   ] = msg.split("#") || "";
-  if (action === "Tambah") {
-    const addedMainDomain = await mysqlServices.insertIntoMainDomain(hosting, domain);
-    addedMainDomain.affectedRows >= 1 ?
-      ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Baru") :
-      ctx.telegram.sendMessage(ctx.chat.id, "Gagal Menambahkan Domain");
-    const domainExpired = await checkerServices.domainChecker(domain);
-    const updatedMainDomainExpired = await mysqlServices.updateExpiredMainDomain(domainExpired.expires_on, domain);
-    ctx.telegram.sendMessage(ctx.chat.id, `Domain Expired ${domainExpired.expires_on}`);
-    updatedMainDomainExpired.affectedRows >= 1 ?
-      ctx.telegram.sendMessage(ctx.chat.id, "Berhasil memperbarui expired domain") :
-      ctx.telegram.sendMessage(ctx.chat.id, "Gagal memperbarui expired domain");  
+  try {
+    if (action === "Tambah") {
+      await mysqlServices.checkAvailableMainDomain(domain);
+      await mysqlServices.insertIntoMainDomain(hosting, domain);
+      await ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Baru")
+      const domainExpired = await checkerServices.domainChecker(domain);
+      await ctx.telegram.sendMessage(ctx.chat.id, `Domain Expired ${domainExpired.expires_on}`);
+    }
+  } catch (error) {
+    switch (error.message) {
+      case "MAIN_DOMAIN_AVAILABLE":
+        ctx.telegram.sendMessage(ctx.chat.id, "Domain Sudah Tersedia");
+        const domainExpired = await checkerServices.domainChecker(domain);
+        await ctx.telegram.sendMessage(ctx.chat.id, `Domain Expired ${domainExpired.expires_on}`);
+        break;
+      case "INSERT_MAIN_DOMAIN_FAILED":
+        ctx.telegram.sendMessage(ctx.chat.id, "Gagal Menambahkan Domain");
+        break;
+      default:
+        console.log(error);
+        ctx.telegram.sendMessage(ctx.chat.id, "Terjadi Kegagalan Saat Aksi /domain");
+        break;
+    }
   }
 });
 
 
 const monitoringSSLExpired = async () => {
-  try {
-    // Read Data From Database
-    const resultDomains = await mysqlServices.readAllSslDomain();
-    // Check status, and remaining days all ssl with local DB
-    const resultLocalChecker = resultDomains.map((result) => {
-      const today = new Date().getTime();
-      const dateOfSSL = new Date(result.expired).getTime();
-      const remainingTime = dateOfSSL - today;
-      const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
-      const newExpired = formatDate(result.expired);
+  /**
+   * * Read all data ssl domain from database
+  */
+  const resultSSLDomains = await mysqlServices.readAllSslDomain();
+  /**
+   * * Result variable is check remaining days all ssl domain with live checking
+  */
+  const liveSSLChecker = await Promise.all(resultSSLDomains.map(async (result) => {
+    const sslStatus = await checkerServices.sslChecker(result.domain, result.port);
+    const newExpired = formatDate(sslStatus.expired);
+    if (sslStatus.remaining <= WARN_DAYS) {
       return {
         nama: result.nama,
         domain: result.domain,
-        port: result.port,
-        remaining: remainingDays,
+        remaining: sslStatus.remaining,
+        status: sslStatus.status,
         expired: newExpired,
         tempat: result.tempat,
       };
-    });
-
-    const liveSSLChecker = async (localSSLCheckers) => (
-      await Promise.all(localSSLCheckers.map(async (result) => {
-        const sslStatus = await checkerServices.sslChecker(result.domain, result.port);
-        const newExpired = formatDate(sslStatus.expired);
-        if (sslStatus.remaining <= WARN_DAYS) {
-          return {
-            nama: result.nama,
-            domain: result.domain,
-            remaining: sslStatus.remaining,
-            status: sslStatus.status,
-            expired: newExpired,
-            tempat: result.tempat,
-          };
-        }
-        await mysqlServices.updateSslExpired(result.domain, sslStatus.expired)
-      }))
-    );
-
-    // Filter domain
-    const filterWarningSSL = resultLocalChecker.filter((result) => result.remaining <= WARN_DAYS);
-    
-    if (filterWarningSSL.length > 0) {
-      const liveWarningExpired = await liveSSLChecker(filterWarningSSL);
-      const dataSended = liveWarningExpired.filter((result) => result !== undefined);
-      if (dataSended.length >= 1) {
-        return await teleServices.sendWarningMessage(bot, process.env.ID_MY, liveWarningExpired);
-      }
-      console.log(`[${formatDate(new Date().toISOString())}] EXPIRED SSL UPDATED...`);
     }
-  } catch (error) {
-    throw new Error(error);
+  }));
+
+  /**
+   * * Filtering data from live checker, get data ssl when remaining < WARN_DAYS
+  */
+  const filterWarningSSL = liveSSLChecker.filter((result) => result.remaining <= WARN_DAYS);
+  
+  if (filterWarningSSL.length > 0) {
+    return await teleServices.sendWarningMessage(bot, SEND_TO_ID, filterWarningSSL);
   }
 };
 
 const monitoringDomainExpired = async () => {
-  try {
-    // Read data from database
-    const results = await mysqlServices.readAllDomain();
-    // Check remaining days all domain with local DB
-    const localChecker = results.map((result) => {
-      const today = new Date().getTime();
-      const dateOfDomain = new Date(result.expired).getTime();
-      const remainingTime = dateOfDomain - today;
-      const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
-      const newExpired = formatDate(result.expired);
+  /**
+   * * Read all data domain from database
+  */
+  const results = await mysqlServices.readAllDomain();
+  /**
+   * * Result variable is check remaining days all domain with live checking
+  */
+  const liveChecker = await Promise.all(results.map(async (result) => {
+    const today = new Date().getTime();
+    const checkDomain = await checkerServices.domainChecker(result.domain);
+    const dateOfDomain = new Date(checkDomain.expires_on).getTime();
+    const remainingTime = dateOfDomain - today;
+    const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
+    const newFormatDateDomain = formatDate(new Date(dateOfDomain).toISOString());
+    if (remainingDays <= WARN_DAYS) {
       return {
         hosting: result.hosting,
         remaining: remainingDays,
         domain: result.domain,
-        expired: newExpired,
-      };
-    });
-    // Function check remaining days all domain with live data
-    const liveChecker = async (localResults) => (
-      await Promise.all(localResults.map(async (result) => {
-        const today = new Date().getTime();
-        const checkDomain = await checkerServices.domainChecker(result.domain);
-        const dateOfDomain = new Date(checkDomain.expires_on).getTime();
-        const remainingTime = dateOfDomain - today;
-        const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
-        if (remainingDays <= WARN_DAYS) {
-          return {
-            hosting: result.hosting,
-            remaining: remainingDays,
-            domain: result.domain,
-            expired: result.expired,   
-          }
-        }
-        await mysqlServices.updateExpiredMainDomain(checkDomain.expires_on, result.domain);
-      }))
-    );
-    // Filter when data remaining <= WARN_DAYS
-    const filterLocalWarningExpired = localChecker.filter((result) => result.remaining <= WARN_DAYS);
-
-    if (filterLocalWarningExpired.length > 0) {
-      const liveWarningExpired = await liveChecker(filterLocalWarningExpired);
-      const dataSended = liveWarningExpired.filter((result) => result !== undefined);
-      if (dataSended.length >= 1) {
-        return await teleServices.sendWarningDomainMessage(bot, process.env.ID_MY, liveWarningExpired);
+        expired: newFormatDateDomain,
       }
-      console.log(`[${formatDate(new Date().toISOString())}] EXPIRED DOMAIN UPDATED...`);
     }
-  } catch (error) {
-    throw new Error(error);
+  }));
+  /**
+   * * Filtering data from live checker, get data domain when remaining < WARN_DAYS
+  */
+  const filteredData = liveChecker.filter((result) => result.remaining <= WARN_DAYS);
+  if (filteredData.length > 0) {
+    await teleServices.sendWarningDomainMessage(bot, SEND_TO_ID, filteredData);
   }
 };
 
-// setInterval(() => {
-//   monitoringSSLExpired();
-// }, (1000 * 60 * 2));
-// setInterval(() => {
-//   monitoringSSLExpired();
-// }, (1000 * 60 * 2));
-
 // monitoringSSLExpired();
-monitoringDomainExpired();
+// monitoringDomainExpired();
+cron.schedule('59 19 * * *', () => {
+  console.log('Running a job at 01:00 at America/Sao_Paulo timezone');
+}, {
+  scheduled: true,
+  timezone: "Asia/Jakarta"
+});
 
 bot.launch();

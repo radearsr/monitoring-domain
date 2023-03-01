@@ -30,6 +30,14 @@ const queryDB = async (conn, strQuery, escapeValue) => {
   });
 };
 
+exports.checkAvailableSslDomain = async (domain) => {
+  const conn = await connectionDB();
+  const result = await queryDB(conn, "SELECT domain FROM ssl_domain WHERE domain=?", [domain]);
+  if (result.length >= 1) {
+    throw new Error("SSL_DOMAIN_AVAILABLE");
+  }
+};
+
 exports.insertIntoSslDomain = async (nama, domain, port, tempat) => {
   const connection = await connectionDB();
   const result = await queryDB(
@@ -41,9 +49,11 @@ exports.insertIntoSslDomain = async (nama, domain, port, tempat) => {
     "INSERT INTO ssl_domain (nama, domain, port, tempat) VALUES ?",
     [[[nama, domain, port, tempat]]],
   ));
-  return result;
+  if (result.affectedRows < 1) {
+    throw new Error("INSERT_SSL_DOMAIN_FAILED");
+  }
 };
-
+  
 exports.readAllSslDomain = async () => {
   const connection = await connectionDB();
   const result = await queryDB(
@@ -53,7 +63,7 @@ exports.readAllSslDomain = async () => {
   console.log(`[${formatDate(dateNow)}]`, mysql.format("SELECT * FROM ssl_domain"));
   return result;
 };
-
+    
 exports.readAllDomain = async () => {
   const connection = await connectionDB();
   const result = await queryDB(
@@ -63,19 +73,13 @@ exports.readAllDomain = async () => {
   console.log(`[${formatDate(dateNow)}]`, mysql.format("SELECT * FROM main_domain"));
   return result;
 };
-
-exports.updateSslExpired = async (domain, expired) => {
-  const connection = await connectionDB();
-  const result = await queryDB(
-    connection,
-    "UPDATE ssl_domain SET expired = ? WHERE domain = ?",
-    [expired, domain],
-  );
-  console.log(`[${formatDate(dateNow)}]`, mysql.format(
-    "UPDATE ssl_domain SET expired = ? WHERE domain = ?",
-    [expired, domain],
-  ));
-  return result;
+      
+exports.checkAvailableMainDomain = async (domain) => {
+  const conn = await connectionDB();
+  const result = await queryDB(conn, "SELECT domain FROM main_domain WHERE domain=?", [domain]);
+  if (result.length >= 1) {
+    throw new Error("MAIN_DOMAIN_AVAILABLE");
+  }
 };
 
 exports.insertIntoMainDomain = async (hosting, domain) => {
@@ -89,20 +93,7 @@ exports.insertIntoMainDomain = async (hosting, domain) => {
     "INSERT INTO main_domain (domain) VALUES ?",
     [[[domain]]],
   ));
-  return result;
-};
-
-exports.updateExpiredMainDomain = async (expired, domain) => {
-  const expiredOn = new Date(expired).toISOString();
-  const connection = await connectionDB();
-  const result = await queryDB(
-    connection,
-    "UPDATE main_domain SET expired=? WHERE domain=?",
-    [expiredOn, domain],
-  );
-  console.log(`[${formatDate(dateNow)}]`, mysql.format(
-    "UPDATE main_domain SET expired=? WHERE domain=?",
-    [expiredOn, domain],   
-  ));
-  return result;
+  if (result.affectedRows < 1) {
+    throw new Error("INSERT_MAIN_DOMAIN_FAILED");
+  }
 };

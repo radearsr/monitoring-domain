@@ -1,0 +1,26 @@
+name: Continues Deployment
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    name: Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH Remote Cpanel
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/assets.deyapro.com
+            git fetch
+            git reset --hard HEAD
+            git merge origin/main
+            git log -1
+            ~/nodevenv/assets.deyapro.com/16/bin/npm install
+            touch tmp/restart.txt
