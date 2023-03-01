@@ -159,8 +159,9 @@ const monitoringDomainExpired = async () => {
 
 // monitoringSSLExpired();
 // monitoringDomainExpired();
-cron.schedule('59 19 * * *', () => {
-  console.log('Running a job at 01:00 at America/Sao_Paulo timezone');
+cron.schedule("09 20 * * *", () => {
+  monitoringSSLExpired();
+  monitoringDomainExpired();
 }, {
   scheduled: true,
   timezone: "Asia/Jakarta"
