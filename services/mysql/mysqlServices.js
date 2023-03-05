@@ -3,12 +3,17 @@
 const mysql = require("mysql");
 const { formatDate } = require("../../utils/DateService");
 
+const host = process.env.NODE_ENV === "production" ? process.env.DBHOST : process.env.DBHOST_DEV;
+const user = process.env.NODE_ENV === "production" ? process.env.DBUSER : process.env.DBUSER_DEV;
+const password = process.env.NODE_ENV === "production" ? process.env.DBPASSWORD : process.env.DBPASSWORD_DEV;
+const database = process.env.NODE_ENV === "production" ? process.env.DBNAME : process.env.DBNAME_DEV;
+
 const dateNow = new Date().toISOString();
 const pool = mysql.createPool({
-  host: process.env.DBHOST,
-  user: process.env.DBUSER,
-  password: process.env.DBPASSWORD,
-  database: process.env.DBNAME,
+  host,
+  user,
+  password,
+  database,
 });
 
 const connectionDB = () => {

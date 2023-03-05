@@ -11,10 +11,12 @@ const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN 
 const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
 const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_MONIT_SERVER : process.env.ID_MY;
 
+console.log({ BOT_TOKEN, WARN_DAYS, SEND_TO_ID });
 const bot = new Telegraf(BOT_TOKEN);
 
 bot.command("/start", (ctx) => {
-  ctx.telegram.sendMessage(ctx.chat.id, "Hello I'm IT Support BOT :)");
+  ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${{ BOT_TOKEN, SEND_TO_ID }}`);
+
 });
 
 bot.command("/format", (ctx) => {
@@ -31,7 +33,7 @@ bot.command("/ssl", async (ctx) => {
       port,
       tempat,
     ] = msg.split("#") || "";
-  
+
     if (action === "Tambah") {
       await mysqlServices.checkAvailableSslDomain(domain);
       await mysqlServices.insertIntoSslDomain(nama, domain, port, tempat);
@@ -118,7 +120,6 @@ const monitoringSSLExpired = async () => {
    * * Filtering data from live checker, get data ssl when remaining < WARN_DAYS
   */
   const filterWarningSSL = liveSSLChecker.filter((result) => result.remaining <= WARN_DAYS);
-  
   if (filterWarningSSL.length > 0) {
     return await teleServices.sendWarningMessage(bot, SEND_TO_ID, filterWarningSSL);
   }
@@ -157,9 +158,7 @@ const monitoringDomainExpired = async () => {
   }
 };
 
-// monitoringSSLExpired();
-// monitoringDomainExpired();
-cron.schedule("09 20 * * *", () => {
+cron.schedule("0 7 * * *", () => {
   monitoringSSLExpired();
   monitoringDomainExpired();
 }, {
@@ -167,4 +166,5 @@ cron.schedule("09 20 * * *", () => {
   timezone: "Asia/Jakarta"
 });
 
+console.log("Bot Telegram Is Running");
 bot.launch();
