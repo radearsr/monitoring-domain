@@ -7,6 +7,7 @@ const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");
 
+const APP_PORT = 5000;
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
 const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
 const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_MONIT_SERVER : process.env.ID_MY;
@@ -170,7 +171,7 @@ cron.schedule("0 7 * * *", () => {
 app.get("/", (req, res) => {
   try {
     const ipAddress = req.header("x-forwarded-for") || req.socket.remoteAddress;
-    bot.telegram.sendMessage(process.env.ID_MY, `Access ${ipAddress}`);
+    bot.telegram.sendMessage(process.env.ID_MY, `Client Access ${ipAddress}`);
     res.send(`
       <center>
         <h1>Welcome To Domain Checker</h1>
@@ -182,4 +183,17 @@ app.get("/", (req, res) => {
   }
 });
 
+app.get("/check", (req, res) => {
+  try {
+    monitoringDomainExpired();
+    monitoringSSLExpired();
+  } catch (error) {
+    res.send("Terjadi kegagaln pada server cek log...");
+  }
+})
+
 bot.launch();
+
+app.listen(APP_PORT, () => {
+  console.log(`APP START ${APP_PORT}`);
+});
