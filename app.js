@@ -24,15 +24,15 @@ bot.command("/format", (ctx) => {
 })
 
 bot.command("/ssl", async (ctx) => {
+  const { text: msg } = ctx.message;  
+  const [,
+    action,
+    nama,
+    domain,
+    port,
+    tempat,
+  ] = msg.split("#") || "";
   try {
-    const { text: msg } = ctx.message;  
-    const [,
-      action,
-      nama,
-      domain,
-      port,
-      tempat,
-    ] = msg.split("#") || "";
 
     if (action === "Tambah") {
       await mysqlServices.checkAvailableSslDomain(domain);
