@@ -170,6 +170,7 @@ cron.schedule("0 7 * * *", () => {
 app.get("/", (req, res) => {
   try {
     const ipAddress = req.header("x-forwarded-for") || req.socket.remoteAddress;
+    bot.telegram.sendMessage(process.env.ID_MY, `Access ${ipAddress}`);
     res.send(`
       <center>
         <h1>Welcome To Domain Checker</h1>
