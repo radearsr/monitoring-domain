@@ -16,7 +16,7 @@ const bot = new Telegraf(BOT_TOKEN);
 const app = express();
 
 bot.command("/start", (ctx) => {
-  ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${{ BOT_TOKEN, SEND_TO_ID }}`);
+  ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${BOT_TOKEN}\n${SEND_TO_ID}`);
 
 });
 
