@@ -1,11 +1,11 @@
 require("dotenv").config();
 const cron = require("node-cron");
+const express = require("express");
 const { Telegraf } = require("telegraf");
 const checkerServices = require("./services/checker");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");
-
 
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
 const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
@@ -13,6 +13,7 @@ const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_
 
 console.log({ BOT_TOKEN, WARN_DAYS, SEND_TO_ID });
 const bot = new Telegraf(BOT_TOKEN);
+const app = express();
 
 bot.command("/start", (ctx) => {
   ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${{ BOT_TOKEN, SEND_TO_ID }}`);
@@ -166,5 +167,18 @@ cron.schedule("0 7 * * *", () => {
   timezone: "Asia/Jakarta"
 });
 
-console.log("Bot Telegram Is Running");
+app.get("/", (req, res) => {
+  try {
+    const ipAddress = req.header("x-forwarded-for") || req.socket.remoteAddress;
+    res.send(`
+      <center>
+        <h1>Welcome To Domain Checker</h1>
+        <h4>Client From ${ipAddress}</h4>
+      <center>
+    `);
+  } catch (error) {
+    res.send("Terjadi Kegagalan pada server cek log...");
+  }
+});
+
 bot.launch();
