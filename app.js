@@ -1,31 +1,28 @@
 require("dotenv").config();
 const cron = require("node-cron");
-const express = require("express");
 const { Telegraf } = require("telegraf");
 const checkerServices = require("./services/checker/checkerServices");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");
 
-const APP_PORT = 5000;
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
 const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
 const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_MONIT_SERVER : process.env.ID_MY;
 
 console.log({ BOT_TOKEN, WARN_DAYS, SEND_TO_ID });
 const bot = new Telegraf(BOT_TOKEN);
-const app = express();
 
-bot.command("/start", (ctx) => {
+bot.command("start", (ctx) => {
   ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${BOT_TOKEN}\n${SEND_TO_ID}`);
 
 });
 
-bot.command("/format", (ctx) => {
+bot.command("format", (ctx) => {
   ctx.telegram.sendMessage(ctx.chat.id, ">>>>> Format Aksi BOT <<<<<\n\n** Tambah Monitoring SSL **\n/ssl#Aksi#Nama#Domain#Port#Tempat\nContoh\n/ssl#Tambah#Web Report PMK#report.serverpmk.com#443#10.5.7.208\n\n** Tambah Monitoring Domain **\n/domain#Aksi#Hosting#Domain\nContoh\n/domain#Tambah#Niagahoster#unitedtronik.co.id");
 })
 
-bot.command("/ssl", async (ctx) => {
+bot.command("ssl", async (ctx) => {
   const { text: msg } = ctx.message;  
   const [,
     action,
@@ -61,7 +58,7 @@ bot.command("/ssl", async (ctx) => {
   }
 });
 
-bot.command("/domain", async (ctx) => {
+bot.command("domain", async (ctx) => {
   const { text: msg } = ctx.message;
   const [,
     action,
@@ -175,8 +172,5 @@ cron.schedule("0 7 * * *", () => {
   scheduled: true,
   timezone: "Asia/Jakarta"
 });
-
-monitoringDomainExpired();
-monitoringSSLExpired();
 
 bot.launch();
