@@ -2,7 +2,7 @@ require("dotenv").config();
 const cron = require("node-cron");
 const express = require("express");
 const { Telegraf } = require("telegraf");
-const checkerServices = require("./services/checker");
+const checkerServices = require("./services/checker/checkerServices");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");

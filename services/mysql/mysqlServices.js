@@ -1,5 +1,3 @@
-"use strict";
-
 const mysql = require("mysql");
 const { formatDate } = require("../../utils/DateService");
 
