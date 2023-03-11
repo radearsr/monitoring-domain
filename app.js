@@ -173,4 +173,9 @@ cron.schedule("0 7 * * *", () => {
   timezone: "Asia/Jakarta"
 });
 
+(async () => {
+  const result = await checkerServices.getSSLStatus("pm2.keymetrics.io");
+  console.log(result);
+})()
+
 bot.launch();

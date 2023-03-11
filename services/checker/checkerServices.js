@@ -19,6 +19,7 @@ exports.getInformationDomain = async (domain) => {
 };
 
 exports.getSSLStatus = async (domain, port = 443) => {
+  console.log(domain, port);
   const result = await sslChecker(domain, { method: "GET", port });
   console.log(`[${formatDate(new Date().toISOString())}] Monitoring SSL ${domain} ${port}`);
   return {
