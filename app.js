@@ -5,6 +5,8 @@ const checkerServices = require("./services/checker/checkerServices");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");
+const sslChecker = require("ssl-checker");
+const native = require("./native");
 
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
 const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
@@ -13,12 +15,13 @@ const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_
 console.log({ BOT_TOKEN, WARN_DAYS, SEND_TO_ID });
 const bot = new Telegraf(BOT_TOKEN);
 
-bot.command("start", (ctx) => {
+bot.command("start", async (ctx) => {
+  const result = await checkerServices.getSSLStatus("pm2.keymetrics.io");
+  console.log(result);
   ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${BOT_TOKEN}\n${SEND_TO_ID}`);
-
 });
 
-bot.command("format", (ctx) => {
+bot.command("format", async (ctx) => {
   ctx.telegram.sendMessage(ctx.chat.id, ">>>>> Format Aksi BOT <<<<<\n\n** Tambah Monitoring SSL **\n/ssl#Aksi#Nama#Domain#Port#Tempat\nContoh\n/ssl#Tambah#Web Report PMK#report.serverpmk.com#443#10.5.7.208\n\n** Tambah Monitoring Domain **\n/domain#Aksi#Hosting#Domain\nContoh\n/domain#Tambah#Niagahoster#unitedtronik.co.id");
 })
 
@@ -37,15 +40,17 @@ bot.command("ssl", async (ctx) => {
       await mysqlServices.checkAvailableSslDomain(domain);
       await mysqlServices.insertIntoSslDomain(nama, domain, port, tempat);
       await ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Cek SSL Baru");
-      const sslStatus = await checkerServices.getSSLStatus(domain, port);
-      await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
+      // const sslStatus = await checkerServices.getSSLStatus(domain, port);
+      const sslStatus = await native.getSSLCertificateInfo(domain);
+      await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.validTo)}`);
     }
   } catch (error) {
     switch (error.message) {
       case "SSL_DOMAIN_AVAILABLE":
         ctx.telegram.sendMessage(ctx.chat.id, "SSL Domain Sudah Tersedia");
-        const sslStatus = await checkerServices.getSSLStatus(domain, port);
-        await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
+        // const sslStatus = await sslChecker(domain, { method: "GET", port });
+        const sslStatus = await native.getSSLCertificateInfo(domain);
+        ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.validTo)}`);
         break;
       case "INSERT_SSL_DOMAIN_FAILED":
         ctx.telegram.sendMessage(ctx.chat.id, "Gagal Menambahkan SSL Domain");
@@ -174,7 +179,7 @@ cron.schedule("0 7 * * *", () => {
 });
 
 (async () => {
-  const result = await checkerServices.getSSLStatus("pm2.keymetrics.io");
+  const result = await checkerServices.getSSLStatus("report.serverpmk.com");
   console.log(result);
 })()
 
