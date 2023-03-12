@@ -71,6 +71,9 @@ bot.command("domain", async (ctx) => {
       await mysqlServices.insertIntoMainDomain(hosting, domain);
       await ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Baru")
       const domainExpired = await checkerServices.getInformationDomain(domain);
+      if (!domainExpired.expires_on) {
+        return ctx.telegram.sendMessage(ctx.chat.id, `Link https://www.whois.com/whois/${domain}`);
+      }
       await ctx.telegram.sendMessage(ctx.chat.id, `Domain Expired ${domainExpired.expires_on}`);
     }
   } catch (error) {
@@ -78,6 +81,9 @@ bot.command("domain", async (ctx) => {
       case "MAIN_DOMAIN_AVAILABLE":
         ctx.telegram.sendMessage(ctx.chat.id, "Domain Sudah Tersedia");
         const domainExpired = await checkerServices.getInformationDomain(domain);
+        if (!domainExpired.expires_on) {
+          return ctx.telegram.sendMessage(ctx.chat.id, `Link https://www.whois.com/whois/${domain}`);
+        }
         await ctx.telegram.sendMessage(ctx.chat.id, `Domain Expired ${domainExpired.expires_on}`);
         break;
       case "INSERT_MAIN_DOMAIN_FAILED":
