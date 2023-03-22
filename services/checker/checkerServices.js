@@ -15,12 +15,14 @@ exports.getInformationDomain = async (domain) => {
     jsonDataResult[fixedTitle.replace(":", "")] = value;
   });
   console.log(`[${formatDate(new Date().toISOString())}] Monitoring End ${domain}`);
+  // console.log(jsonDataResult);
   return jsonDataResult;
 };
 
 exports.getSSLStatus = async (domain, port = 443) => {
-  console.log(domain, port);
-  const result = await sslChecker(domain, { method: "GET", port });
+  const trimedDomain = domain.trim();
+  console.log(trimedDomain, port);
+  const result = await sslChecker(trimedDomain, { method: "GET", port });
   console.log(`[${formatDate(new Date().toISOString())}] Monitoring SSL ${domain} ${port}`);
   return {
     remaining: result.daysRemaining,
