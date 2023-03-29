@@ -54,7 +54,6 @@ const monitoringDomainExpired = async () => {
   */
   const liveChecker = await Promise.all(results.map(async (result) => {
     const today = new Date().getTime();
-    
     const checkDomain = await checkerServices.getInformationDomain(result.domain);
     const dateOfDomain = new Date(checkDomain.expires_on).getTime();
     const remainingTime = dateOfDomain - today;
@@ -82,10 +81,8 @@ const monitoringDomainExpired = async () => {
   }
 };
 
-// Cron("*/5 * * * * *", { timezone: "Asia/Jakarta" }, () => {
-//   monitoringSSLExpired();
-//   monitoringDomainExpired();
-// });
-
-monitoringSSLExpired();
-monitoringDomainExpired();
+Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
+  await teleServices.sendSelfAlert(BOT_TOKEN, process.env.ID_MY, "Cron Running Gaiss...");
+  monitoringSSLExpired();
+  monitoringDomainExpired();
+});

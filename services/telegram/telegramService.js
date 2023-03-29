@@ -25,3 +25,13 @@ exports.sendWarningDomainMessage = async (teleToken, teleMessageId, datas) => {
     }
   });
 };
+
+exports.sendSelfAlert = async (teleToken, teleMessageId, messageForSend) => {
+  const message = `>>>>>ALERT BOY<<<<<\n\n${messageForSend}`;
+  await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
+    params: {
+      chat_id: teleMessageId,
+      text: message,
+    }
+  });
+};
