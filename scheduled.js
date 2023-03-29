@@ -1,12 +1,12 @@
 require("dotenv").config();
-const cron = require("node-cron");
+const Cron = require("croner");
 const checkerServices = require("./services/checker/checkerServices");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
 const { formatDate } = require("./utils/DateService");
 
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
-const WARN_DAYS = process.env.NODE_ENV === "production" ? 7 : 300;
+const WARN_DAYS = process.env.NODE_ENV === "production" ? 300 : 7;
 const SEND_TO_ID = process.env.NODE_ENV === "production" ? process.env.ID_GROUP_MONIT_SERVER : process.env.ID_MY;
 
 const monitoringSSLExpired = async () => {
@@ -54,11 +54,11 @@ const monitoringDomainExpired = async () => {
   */
   const liveChecker = await Promise.all(results.map(async (result) => {
     const today = new Date().getTime();
+    
     const checkDomain = await checkerServices.getInformationDomain(result.domain);
     const dateOfDomain = new Date(checkDomain.expires_on).getTime();
     const remainingTime = dateOfDomain - today;
     const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
-    console.log(remainingDays);
     const newFormatDateDomain = formatDate(new Date(dateOfDomain).toISOString());
     if (remainingDays <= WARN_DAYS) {
       return {
@@ -82,12 +82,10 @@ const monitoringDomainExpired = async () => {
   }
 };
 
-cron.schedule("*/1 * * * *", () => {
-  monitoringSSLExpired();
-  monitoringDomainExpired();
-}, {
-  scheduled: true,
-  timezone: "Asia/Jakarta"
-});
+// Cron("*/5 * * * * *", { timezone: "Asia/Jakarta" }, () => {
+//   monitoringSSLExpired();
+//   monitoringDomainExpired();
+// });
 
-// monitoringDomainExpired();
+monitoringSSLExpired();
+monitoringDomainExpired();
