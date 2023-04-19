@@ -97,7 +97,7 @@ bot.command("domain", async (ctx) => {
   }
 });
 
-const monitoringSSLExpired = async () => {
+const monitoringSSLExpired = async (warnDays, botToken, chatId) => {
   /**
    * * Read all data ssl domain from database
   */
@@ -108,7 +108,7 @@ const monitoringSSLExpired = async () => {
   const liveSSLChecker = await Promise.all(resultSSLDomains.map(async (result) => {
     const sslStatus = await checkerServices.getSSLStatus(result.domain, result.port);
     const newExpired = formatDate(sslStatus.expired);
-    if (sslStatus.remaining <= WARN_DAYS) {
+    if (sslStatus.remaining <= warnDays) {
       return {
         nama: result.nama,
         domain: result.domain,
@@ -122,17 +122,17 @@ const monitoringSSLExpired = async () => {
   }));
   const filteredChecker = liveSSLChecker.filter((result) => result !== false);
   /**
-   * * Filtering data from live checker, get data ssl when remaining < WARN_DAYS
+   * * Filtering data from live checker, get data ssl when remaining < warnDays
   */
   if (filteredChecker.length >= 1) {
-    const filterWarningSSL = filteredChecker.filter((result) => result.remaining <= WARN_DAYS);
+    const filterWarningSSL = filteredChecker.filter((result) => result.remaining <= warnDays);
     if (filterWarningSSL.length > 0) {
-      return await teleServices.sendWarningMessage(BOT_TOKEN, SEND_TO_ID, filterWarningSSL);
+      return await teleServices.sendWarningMessage(botToken, chatId, filterWarningSSL);
     }
   }
 };
 
-const monitoringDomainExpired = async () => {
+const monitoringDomainExpired = async (warnDays, botToken, chatId) => {
   /**
    * * Read all data domain from database
   */
@@ -147,7 +147,7 @@ const monitoringDomainExpired = async () => {
     const remainingTime = dateOfDomain - today;
     const remainingDays = Math.round(remainingTime / (1000 * 60 * 60 * 24));
     const newFormatDateDomain = formatDate(new Date(dateOfDomain).toISOString());
-    if (remainingDays <= WARN_DAYS) {
+    if (remainingDays <= warnDays) {
       return {
         hosting: result.hosting,
         remaining: remainingDays,
@@ -159,28 +159,28 @@ const monitoringDomainExpired = async () => {
   }));
   const filteredChecker = liveChecker.filter((result) => result !== false);
   /**
-   * * Filtering data from live checker, get data domain when remaining < WARN_DAYS
+   * * Filtering data from live checker, get data domain when remaining < warnDays
   */
   if (filteredChecker.length >= 1) {
-    const filteredData = liveChecker.filter((result) => result.remaining <= WARN_DAYS);
+    const filteredData = liveChecker.filter((result) => result.remaining <= warnDays);
     if (filteredData.length > 0) {
-      await teleServices.sendWarningDomainMessage(BOT_TOKEN, SEND_TO_ID, filteredData);
+      await teleServices.sendWarningDomainMessage(botToken, chatId, filteredData);
     }
   }
 };
 
-bot.command("cekdomain", () => {
-  monitoringDomainExpired();
+bot.command("cekdomain", (ctx) => {
+  monitoringDomainExpired(1000, BOT_TOKEN, ctx.chat.id);
 });
 
-bot.command("cekssl", () => {
-  monitoringSSLExpired();
+bot.command("cekssl", (ctx) => {
+  monitoringSSLExpired(1000, BOT_TOKEN, ctx.chat.id);
 });
 
 Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
   await teleServices.sendSelfAlert(BOT_TOKEN, process.env.ID_MY, "Cron Running Gaiss...");
-  monitoringSSLExpired();
-  monitoringDomainExpired();
+  monitoringSSLExpired(7, BOT_TOKEN, SEND_TO_ID);
+  monitoringDomainExpired(7, BOT_TOKEN, SEND_TO_ID);
 });
 
 bot.launch();
