@@ -183,4 +183,9 @@ Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
   monitoringDomainExpired(7, BOT_TOKEN, SEND_TO_ID);
 });
 
+Cron("0 0 0 * * 1", { timezone: "Asia/Jakarta" }, async () => {
+  monitoringSSLExpired(1000, BOT_TOKEN, SEND_TO_ID);
+  monitoringDomainExpired(1000, BOT_TOKEN, SEND_TO_ID);
+});
+
 bot.launch();
