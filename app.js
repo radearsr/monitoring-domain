@@ -4,7 +4,6 @@ const { Telegraf } = require("telegraf");
 const checkerServices = require("./services/checker/checkerServices");
 const mysqlServices = require("./services/mysql/mysqlServices");
 const teleServices = require("./services/telegram/telegramService");
-const sslChecker = require("ssl-checker");
 const { formatDate } = require("./utils/DateService");
 
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
@@ -15,7 +14,7 @@ console.log({ BOT_TOKEN, WARN_DAYS, SEND_TO_ID });
 const bot = new Telegraf(BOT_TOKEN);
 
 bot.command("start", async (ctx) => {
-  ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${BOT_TOKEN}\n${SEND_TO_ID}`);
+  ctx.telegram.sendMessage(ctx.chat.id, `Hello I'm IT Support BOT :)\n${BOT_TOKEN}\n${SEND_TO_ID}`, { reply_markup: { inline_keyboard: [[{ text: "TEST", callback_data: "test"}]] } });
 });
 
 bot.command("format", async (ctx) => {
@@ -32,20 +31,19 @@ bot.command("ssl", async (ctx) => {
     tempat,
   ] = msg.split("#") || "";
   try {
-
     if (action === "Tambah") {
       await mysqlServices.checkAvailableSslDomain(domain);
       await mysqlServices.insertIntoSslDomain(nama, domain, port, tempat);
       await ctx.telegram.sendMessage(ctx.chat.id, "Berhasil Menambahkan Domain Cek SSL Baru");
       const sslStatus = await checkerServices.getSSLStatus(domain, port);
-      await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.validTo)}`);
+      await ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
     }
   } catch (error) {
     switch (error.message) {
       case "SSL_DOMAIN_AVAILABLE":
         ctx.telegram.sendMessage(ctx.chat.id, "SSL Domain Sudah Tersedia");
-        const sslStatus = await sslChecker(domain, { method: "GET", port });
-        ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.validTo)}`);
+        const sslStatus = await checkerServices.getSSLStatus(domain, port);
+        ctx.telegram.sendMessage(ctx.chat.id, `SSL Expired ${formatDate(sslStatus.expired)}`);
         break;
       case "INSERT_SSL_DOMAIN_FAILED":
         ctx.telegram.sendMessage(ctx.chat.id, "Gagal Menambahkan SSL Domain");
@@ -97,7 +95,7 @@ bot.command("domain", async (ctx) => {
   }
 });
 
-const monitoringSSLExpired = async (warnDays, botToken, chatId) => {
+const monitoringSSLExpired = async (warnDays, botToken, chatId, title) => {
   /**
    * * Read all data ssl domain from database
   */
@@ -127,12 +125,12 @@ const monitoringSSLExpired = async (warnDays, botToken, chatId) => {
   if (filteredChecker.length >= 1) {
     const filterWarningSSL = filteredChecker.filter((result) => result.remaining <= warnDays);
     if (filterWarningSSL.length > 0) {
-      return await teleServices.sendWarningMessage(botToken, chatId, filterWarningSSL);
+      return await teleServices.sendWarningMessage(botToken, chatId, filterWarningSSL, title);
     }
   }
 };
 
-const monitoringDomainExpired = async (warnDays, botToken, chatId) => {
+const monitoringDomainExpired = async (warnDays, botToken, chatId, title) => {
   /**
    * * Read all data domain from database
   */
@@ -164,28 +162,28 @@ const monitoringDomainExpired = async (warnDays, botToken, chatId) => {
   if (filteredChecker.length >= 1) {
     const filteredData = liveChecker.filter((result) => result.remaining <= warnDays);
     if (filteredData.length > 0) {
-      await teleServices.sendWarningDomainMessage(botToken, chatId, filteredData);
+      await teleServices.sendWarningDomainMessage(botToken, chatId, filteredData, title);
     }
   }
 };
 
 bot.command("cekdomain", (ctx) => {
-  monitoringDomainExpired(1000, BOT_TOKEN, ctx.chat.id);
+  monitoringDomainExpired(1000, BOT_TOKEN, ctx.chat.id, "TEST BOT DOMAIN");
 });
 
 bot.command("cekssl", (ctx) => {
-  monitoringSSLExpired(1000, BOT_TOKEN, ctx.chat.id);
+  monitoringSSLExpired(1000, BOT_TOKEN, ctx.chat.id, "TEST BOT SSL");
 });
 
 Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
   await teleServices.sendSelfAlert(BOT_TOKEN, process.env.ID_MY, "Cron Running Gaiss...");
-  monitoringSSLExpired(7, BOT_TOKEN, SEND_TO_ID);
-  monitoringDomainExpired(7, BOT_TOKEN, SEND_TO_ID);
+  monitoringSSLExpired(7, BOT_TOKEN, SEND_TO_ID, "SSL ALERT");
+  monitoringDomainExpired(7, BOT_TOKEN, SEND_TO_ID, "DOMAIN ALERT");
 });
 
-Cron("0 0 0 * * 1", { timezone: "Asia/Jakarta" }, async () => {
-  monitoringSSLExpired(1000, BOT_TOKEN, SEND_TO_ID);
-  monitoringDomainExpired(1000, BOT_TOKEN, SEND_TO_ID);
+Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
+  monitoringSSLExpired(1000, BOT_TOKEN, SEND_TO_ID, "SSL ALL INFO");
+  monitoringDomainExpired(1000, BOT_TOKEN, SEND_TO_ID, "DOMAIN ALL INFO");
 });
 
 bot.launch();
