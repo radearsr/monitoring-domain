@@ -1,20 +1,13 @@
 const mysql = require("mysql");
-const { formatDate } = require("../utils/DateService");
 
 const host = process.env.NODE_ENV === "production" ? process.env.DBHOST : process.env.DBHOST_DEV;
 const user = process.env.NODE_ENV === "production" ? process.env.DBUSER : process.env.DBUSER_DEV;
 const password = process.env.NODE_ENV === "production" ? process.env.DBPASSWORD : process.env.DBPASSWORD_DEV;
 const database = process.env.NODE_ENV === "production" ? process.env.DBNAME : process.env.DBNAME_DEV;
 
-const dateNow = new Date().toISOString();
-const pool = mysql.createPool({
-  host,
-  user,
-  password,
-  database,
-});
+const pool = mysql.createPool({ host, user, password, database });
 
-const connectionDB = () => {
+const createConnection = () => {
   return new Promise((resolve, reject) => {
     pool.getConnection((err, connection) => {
       if (err) reject(err);
@@ -23,7 +16,7 @@ const connectionDB = () => {
   });
 };
 
-const queryDB = async (conn, strQuery, escapeValue) => {
+const raw = async (conn, strQuery, escapeValue) => {
   return new Promise(async (resolve, reject) => {
     conn.query(strQuery, escapeValue, (err, result) => {
       conn.release();
@@ -34,69 +27,57 @@ const queryDB = async (conn, strQuery, escapeValue) => {
 };
 
 exports.checkAvailableSslDomain = async (domain) => {
-  const conn = await connectionDB();
-  const result = await queryDB(conn, "SELECT domain FROM ssl_domain WHERE domain=?", [domain]);
-  if (result.length >= 1) {
-    throw new Error("SSL_DOMAIN_AVAILABLE");
-  }
+  const conn = await createConnection();
+  const sqlString = "SELECT domain FROM ssl_domain WHERE domain = ?";
+  const escapeVal = [domain]
+  const sslDomains = await raw(conn, sqlString, escapeVal);
+  if (sslDomains.length >= 1) return "MYSQL_SSL_DOMAIN_AVAILABLE";
 };
 
 exports.insertIntoSslDomain = async (nama, domain, port, tempat) => {
-  const connection = await connectionDB();
-  const result = await queryDB(
-    connection,
-    "INSERT INTO ssl_domain (nama, domain, port, tempat) VALUES ?",
-    [[[nama, domain, port, tempat]]],
-  );
-  console.log(`[${formatDate(dateNow)}]`, mysql.format(
-    "INSERT INTO ssl_domain (nama, domain, port, tempat) VALUES ?",
-    [[[nama, domain, port, tempat]]],
-  ));
-  if (result.affectedRows < 1) {
-    throw new Error("INSERT_SSL_DOMAIN_FAILED");
+  const conn = await createConnection();
+  const sqlString = "INSERT INTO ssl_domain (nama, domain, port, tempat) VALUES ?";
+  const escapeVal = [[[nama, domain, port, tempat]]];
+  const addedSslDomain = await raw(conn, sqlString, escapeVal);
+  if (!addedSslDomain) {
+    throw new Error("MYSQL_INSERT_SSL_DOMAIN_FAILED");
   }
 };
   
 exports.readAllSslDomain = async () => {
-  const connection = await connectionDB();
-  const result = await queryDB(
-    connection,
-    "SELECT * FROM ssl_domain",
-  );
-  console.log(`[${formatDate(dateNow)}]`, mysql.format("SELECT * FROM ssl_domain"));
-  return result;
+  const conn = await createConnection();
+  const sqlString = "SELECT * FROM ssl_domain"; 
+  const sslDomains = await raw(conn, sqlString);
+  if (!sslDomains) {
+    throw new Error("MYSQL_DOMAIN_SSL_NOT_FOUND");
+  }
+  return sslDomains;
 };
     
 exports.readAllDomain = async () => {
-  const connection = await connectionDB();
-  const result = await queryDB(
-    connection,
-    "SELECT * FROM main_domain",
-  );
-  console.log(`[${formatDate(dateNow)}]`, mysql.format("SELECT * FROM main_domain"));
-  return result;
+  const conn = await createConnection();
+  const sqlString = "SELECT * FROM main_domain";
+  const domains = await raw(conn, sqlString);
+  if (!domains) {
+    throw new Error("MYSQL_DOMAIN_NOT_FOUND");
+  } 
+  return domains;
 };
       
 exports.checkAvailableMainDomain = async (domain) => {
-  const conn = await connectionDB();
-  const result = await queryDB(conn, "SELECT domain FROM main_domain WHERE domain=?", [domain]);
-  if (result.length >= 1) {
-    throw new Error("MAIN_DOMAIN_AVAILABLE");
-  }
+  const conn = await createConnection();
+  const sqlString = "SELECT domain FROM main_domain WHERE domain = ?";
+  const escapeVal = [domain];
+  const domains = await raw(conn, sqlString, escapeVal);
+  if (domains.length >= 1) return "MYSQL_MAIN_DOMAIN_AVAILABLE";
 };
 
 exports.insertIntoMainDomain = async (hosting, domain) => {
-  const connection = await connectionDB();
-  const result = await queryDB(
-    connection,
-    "INSERT INTO main_domain (hosting, domain) VALUES ?",
-    [[[hosting, domain]]],
-  );
-  console.log(`[${formatDate(dateNow)}]`, mysql.format(
-    "INSERT INTO main_domain (domain) VALUES ?",
-    [[[domain]]],
-  ));
-  if (result.affectedRows < 1) {
-    throw new Error("INSERT_MAIN_DOMAIN_FAILED");
+  const conn = await createConnection();
+  const sqlString = "INSERT INTO main_domain (hosting, domain) VALUES ?";
+  const escapeVal = [[[hosting, domain]]]
+  const addedDomain = await raw(conn, sqlString, escapeVal);
+  if (!addedDomain) {
+    throw new Error("MYSQL_INSERT_MAIN_DOMAIN_FAILED");
   }
 };
