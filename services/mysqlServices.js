@@ -1,5 +1,5 @@
 const mysql = require("mysql");
-const { formatDate } = require("../../utils/DateService");
+const { formatDate } = require("../utils/DateService");
 
 const host = process.env.NODE_ENV === "production" ? process.env.DBHOST : process.env.DBHOST_DEV;
 const user = process.env.NODE_ENV === "production" ? process.env.DBUSER : process.env.DBUSER_DEV;

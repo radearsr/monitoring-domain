@@ -1,7 +1,7 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
 const sslChecker = require("ssl-checker");
-const { formatDate } = require("../../utils/DateService");
+const { formatDate } = require("../utils/DateService");
 
 exports.getInformationDomain = async (domain) => {
   console.log(`[${formatDate(new Date().toISOString())}] Monitoring Start ${domain}`);
@@ -15,7 +15,6 @@ exports.getInformationDomain = async (domain) => {
     jsonDataResult[fixedTitle.replace(":", "")] = value;
   });
   console.log(`[${formatDate(new Date().toISOString())}] Monitoring End ${domain}`);
-  // console.log(jsonDataResult);
   return jsonDataResult;
 };
 

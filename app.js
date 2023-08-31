@@ -1,9 +1,9 @@
 require("dotenv").config();
 const Cron = require("croner");
 const { Telegraf, Markup } = require("telegraf");
-const checkerServices = require("./services/checker/checkerServices");
-const mysqlServices = require("./services/mysql/mysqlServices");
-const teleServices = require("./services/telegram/telegramService");
+const checkerServices = require("./services/checkerServices");
+const mysqlServices = require("./services/mysqlServices");
+const teleServices = require("./services/senderServices");
 const { formatDate } = require("./utils/DateService");
 
 const BOT_TOKEN = process.env.NODE_ENV === "production" ? process.env.BOT_TOKEN : process.env.BOT_TOKEN_DEV;   
