@@ -8,6 +8,7 @@ const {
   monitoringDomainExpired,
   monitoringSSLExpired
 } = require("./services/monitoringServices");
+const logger = require("./utils/loggingUtils");
 
 TelegramBot.start((ctx) => {
   ctx.reply(MESSAGE_REPLY.START_COMMAND, {
@@ -23,16 +24,19 @@ TelegramBot.hears("FORMAT", (ctx) => {
 });
 
 TelegramBot.hears(/^SSL#(.+)#(.+)#(.+)#(.+)#(.+)/, async (ctx) => {
+  logger.info(ctx.message.text);
   const addedSsl = await actionServices.sslAction(ctx.message.text);
   ctx.reply(addedSsl);
 });
 
 TelegramBot.hears(/^DOMAIN#(.+)#(.+)#(.+)/, async (ctx) => {
+  logger.info(ctx.message.text);
   const addedDomain = await actionServices.domainAction(ctx.message.text);
   ctx.reply(addedDomain);
 });
 
 TelegramBot.hears("CEK SSL", (ctx) => {
+  logger.info(ctx.message.text);
   monitoringSSLExpired(
     1000,
     process.env.BOT_TOKEN,
@@ -42,6 +46,7 @@ TelegramBot.hears("CEK SSL", (ctx) => {
 });
 
 TelegramBot.hears("CEK DOMAIN", (ctx) => {
+  logger.info(ctx.message.text);
   monitoringDomainExpired(
     1000,
     process.env.BOT_TOKEN,
@@ -51,6 +56,7 @@ TelegramBot.hears("CEK DOMAIN", (ctx) => {
 });
 
 Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
+  logger.info("CRON RUNNING...");
   await senderServices.sendSelfAlert(
     process.env.BOT_TOKEN,
     process.env.ID_MY,
@@ -71,6 +77,7 @@ Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
 });
 
 Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
+  logger.info("CRON RUNNING...");
   monitoringSSLExpired(
     1000,
     process.env.BOT_TOKEN,

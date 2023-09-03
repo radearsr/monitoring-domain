@@ -2,6 +2,7 @@ const checkerServices = require("./checkerServices");
 const mysqlServices = require("./mysqlServices");
 const senderServices = require("./senderServices");
 const { formatDate } = require("../utils/dateUtils");
+const logger = require("../utils/loggingUtils");
 
 exports.monitoringSSLExpired = async (warnDays, botToken, chatId, title) => {
   const sslDomains = await mysqlServices.readAllSslDomain();
@@ -20,7 +21,7 @@ exports.monitoringSSLExpired = async (warnDays, botToken, chatId, title) => {
     }
     return false;
   }));
-  console.log(sslCheckerResults);
+  logger.info(`MONIT SSL RESULTS ${JSON.stringify(sslCheckerResults)}`);
   const listSslFailedCheck = sslCheckerResults.filter((result) => result.status === "rejected");
   if (listSslFailedCheck.length) {
     await senderServices.sendErrorSSLMessage(botToken, chatId, listSslFailedCheck, "SSL ERROR CHECK");
@@ -45,7 +46,7 @@ exports.monitoringDomainExpired = async (warnDays, botToken, chatId, title) => {
     }
     return false;
   }));
-  console.log(domainCheckResults);
+  logger.info(`MONIT DOMAIN RESULTS ${JSON.stringify(domainCheckResults)}`);
   const listDomainFailedCheck = domainCheckResults.filter((result) => result.status === "rejected");
   if (listDomainFailedCheck.length) {
     await senderServices.sendErrorDomainMessage(botToken, chatId, listDomainFailedCheck, "DOMAIN ERROR CHECK");

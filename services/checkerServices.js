@@ -43,7 +43,6 @@ exports.getSSLStatus = async (domain, port = 443) => {
     const trimedDomain = domain.trim();
     const chekerResult = await sslChecker(trimedDomain, { method: "GET", port });
     if (chekerResult.daysRemaining <= 0) throw new Error("REMAINING_DAYS_IS_MINUS");
-    console.log(`[${formatDate(new Date().toISOString())}] Monitoring SSL ${domain} ${port}`);
     return {
       remaining: chekerResult.daysRemaining,
       expired: chekerResult.validTo,
