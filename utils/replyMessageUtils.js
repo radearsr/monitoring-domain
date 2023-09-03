@@ -1,4 +1,4 @@
-const { formatDate } = require("./dateService");
+const { formatDate } = require("./dateUtils");
 
 exports.MESSAGE_REPLY = {
   START_COMMAND: `Hello I'm IT Support BOT :)`,
