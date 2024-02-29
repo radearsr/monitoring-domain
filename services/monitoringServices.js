@@ -5,53 +5,92 @@ const { formatDate } = require("../utils/dateUtils");
 const logger = require("../utils/loggingUtils");
 
 exports.monitoringSSLExpired = async (warnDays, botToken, chatId, title) => {
+  logger.info(`MONIT SSL STARTED...`);
   const sslDomains = await mysqlServices.readAllSslDomain();
-  const sslCheckerResults = await Promise.allSettled(sslDomains.map(async (ssl) => {
-    const sslStatus = await checkerServices.getSSLStatus(ssl.domain, ssl.port);
-    if (sslStatus.remaining <= warnDays) {
-      const newExpired = formatDate(sslStatus.expired);
-      return {
-        nama: ssl.nama,
-        domain: ssl.domain,
-        remaining: sslStatus.remaining,
-        status: sslStatus.status,
-        expired: newExpired,
-        tempat: ssl.tempat,
-      };
-    }
-    return false;
-  }));
+  const sslCheckerResults = await Promise.allSettled(
+    sslDomains.map(async ssl => {
+      const sslStatus = await checkerServices.getSSLStatus(
+        ssl.domain,
+        ssl.port
+      );
+      if (sslStatus.remaining <= warnDays) {
+        const newExpired = formatDate(sslStatus.expired);
+        return {
+          nama: ssl.nama,
+          domain: ssl.domain,
+          remaining: sslStatus.remaining,
+          status: sslStatus.status,
+          expired: newExpired,
+          tempat: ssl.tempat,
+        };
+      }
+      return false;
+    })
+  );
   logger.info(`MONIT SSL RESULTS ${JSON.stringify(sslCheckerResults)}`);
-  const listSslFailedCheck = sslCheckerResults.filter((result) => result.status === "rejected");
+  const listSslFailedCheck = sslCheckerResults.filter(
+    result => result.status === "rejected"
+  );
   if (listSslFailedCheck.length) {
-    await senderServices.sendErrorSSLMessage(botToken, chatId, listSslFailedCheck, "SSL ERROR CHECK");
+    await senderServices.sendErrorSSLMessage(
+      botToken,
+      chatId,
+      listSslFailedCheck,
+      "SSL ERROR CHECK"
+    );
   }
-  const listSslWarning = sslCheckerResults.filter((result) => result?.value?.remaining <= warnDays);
+  const listSslWarning = sslCheckerResults.filter(
+    result => result?.value?.remaining <= warnDays
+  );
   if (!listSslWarning.length) return;
-  return await senderServices.sendWarningMessage(botToken, chatId, listSslWarning, title);
+  return await senderServices.sendWarningMessage(
+    botToken,
+    chatId,
+    listSslWarning,
+    title
+  );
 };
 
 exports.monitoringDomainExpired = async (warnDays, botToken, chatId, title) => {
+  logger.info(`MONIT DOMAIN STARTED...`);
   const domains = await mysqlServices.readAllDomain();
-  const domainCheckResults = await Promise.allSettled(domains.map(async (list) => {
-    const checkDomain = await checkerServices.getInformationDomain(list.domain);
-    if (checkDomain.remaining <= warnDays) {
-      const newExpired = formatDate(checkDomain.expired);
-      return {
-        hosting: list.hosting,
-        remaining: checkDomain.remaining,
-        domain: list.domain,
-        expired: newExpired,
+  const domainCheckResults = await Promise.allSettled(
+    domains.map(async list => {
+      const checkDomain = await checkerServices.getInformationDomain(
+        list.domain
+      );
+      if (checkDomain.remaining <= warnDays) {
+        const newExpired = formatDate(checkDomain.expired);
+        return {
+          hosting: list.hosting,
+          remaining: checkDomain.remaining,
+          domain: list.domain,
+          expired: newExpired,
+        };
       }
-    }
-    return false;
-  }));
+      return false;
+    })
+  );
   logger.info(`MONIT DOMAIN RESULTS ${JSON.stringify(domainCheckResults)}`);
-  const listDomainFailedCheck = domainCheckResults.filter((result) => result.status === "rejected");
+  const listDomainFailedCheck = domainCheckResults.filter(
+    result => result.status === "rejected"
+  );
   if (listDomainFailedCheck.length) {
-    await senderServices.sendErrorDomainMessage(botToken, chatId, listDomainFailedCheck, "DOMAIN ERROR CHECK");
+    await senderServices.sendErrorDomainMessage(
+      botToken,
+      chatId,
+      listDomainFailedCheck,
+      "DOMAIN ERROR CHECK"
+    );
   }
-  const listDomainWarning = domainCheckResults.filter((result) => result?.value?.remaining <= warnDays);
+  const listDomainWarning = domainCheckResults.filter(
+    result => result?.value?.remaining <= warnDays
+  );
   if (!listDomainWarning.length) return;
-  await senderServices.sendWarningDomainMessage(botToken, chatId, listDomainWarning, title);
+  await senderServices.sendWarningDomainMessage(
+    botToken,
+    chatId,
+    listDomainWarning,
+    title
+  );
 };

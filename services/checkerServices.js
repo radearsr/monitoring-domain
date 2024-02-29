@@ -3,7 +3,7 @@ const axios = require("axios");
 const sslChecker = require("ssl-checker");
 const { formatDate } = require("../utils/dateUtils");
 
-exports.getInformationDomain = async (domain) => {
+exports.getInformationDomain = async domain => {
   try {
     const { data } = await axios.get(`https://www.whois.com/whois/${domain}`);
     const $ = cheerio.load(data);
@@ -14,7 +14,7 @@ exports.getInformationDomain = async (domain) => {
       expires_on: "",
       updated_on: "",
       status: "",
-      name_servers: ""
+      name_servers: "",
     };
     $(".df-row").each((_id, element) => {
       const title = $(element.firstChild).text();
@@ -41,8 +41,12 @@ exports.getInformationDomain = async (domain) => {
 exports.getSSLStatus = async (domain, port = 443) => {
   try {
     const trimedDomain = domain.trim();
-    const chekerResult = await sslChecker(trimedDomain, { method: "GET", port });
-    if (chekerResult.daysRemaining <= 0) throw new Error("REMAINING_DAYS_IS_MINUS");
+    const chekerResult = await sslChecker(trimedDomain, {
+      method: "GET",
+      port,
+    });
+    if (chekerResult.daysRemaining <= 0)
+      throw new Error("REMAINING_DAYS_IS_MINUS");
     return {
       remaining: chekerResult.daysRemaining,
       expired: chekerResult.validTo,
