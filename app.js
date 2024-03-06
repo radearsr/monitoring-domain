@@ -1,7 +1,7 @@
 require("dotenv").config();
 const Cron = require("croner");
 const express = require("express");
-const { TelegramBot, webhookCallback } = require("./services/telegrafServices");
+const { TelegramBot } = require("./services/telegrafServices");
 const { MESSAGE_REPLY } = require("./utils/replyMessageUtils");
 const actionServices = require("./services/actionServices");
 const senderServices = require("./services/senderServices");
@@ -10,9 +10,6 @@ const {
   monitoringSSLExpired,
 } = require("./services/monitoringServices");
 const logger = require("./utils/loggingUtils");
-
-const webhookPath = "/telegram-bot-webhook";
-const webhookUrl = `${process.env.CYCLIC_URL}${webhookPath}`;
 
 const app = express();
 
@@ -104,11 +101,16 @@ Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
   );
 });
 
+const port = process.env.PORT || 3000;
+
 if (process.env.NODE_ENV === "production") {
-  app.use(webhookCallback(webhookPath));
-  TelegramBot.telegram.setWebhook(webhookUrl);
+  TelegramBot.launch({
+    webhook: {
+      domain: process.env.CYCLIC_URL,
+      port: process.env.PORT,
+    },
+  });
   logger.info("Bot is running on production...");
-  const port = process.env.PORT || 3000;
   app.listen(port, () => {
     logger.info(`App listening at ${port}`);
   });
