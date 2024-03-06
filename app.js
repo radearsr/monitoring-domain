@@ -104,17 +104,16 @@ Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
 const port = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV === "production") {
+  logger.info("Bot is running on prod...");
   TelegramBot.launch({
     webhook: {
       domain: process.env.CYCLIC_URL,
       port: process.env.PORT,
     },
   });
-  logger.info("Bot is running on production...");
-  app.listen(port, () => {
-    logger.info(`App listening at ${port}`);
-  });
-} else {
-  TelegramBot.launch();
-  logger.info("Bot is running on development...");
 }
+
+logger.info("server running...");
+app.listen(port, () => {
+  logger.info(`App listening at ${port}`);
+});
