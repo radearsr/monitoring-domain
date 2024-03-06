@@ -26,7 +26,7 @@ const raw = async (conn, strQuery, escapeValue) => {
   });
 };
 
-exports.checkAvailableSslDomain = async domain => {
+exports.checkAvailableSslDomain = async (domain) => {
   const conn = await createConnection();
   const sqlString = "SELECT domain FROM ssl_domain WHERE domain = ?";
   const escapeVal = [domain];
@@ -65,7 +65,7 @@ exports.readAllDomain = async () => {
   return domains;
 };
 
-exports.checkAvailableMainDomain = async domain => {
+exports.checkAvailableMainDomain = async (domain) => {
   const conn = await createConnection();
   const sqlString = "SELECT domain FROM main_domain WHERE domain = ?";
   const escapeVal = [domain];

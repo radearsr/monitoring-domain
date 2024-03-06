@@ -6,7 +6,7 @@ const actionServices = require("./services/actionServices");
 const senderServices = require("./services/senderServices");
 const {
   monitoringDomainExpired,
-  monitoringSSLExpired
+  monitoringSSLExpired,
 } = require("./services/monitoringServices");
 const logger = require("./utils/loggingUtils");
 
@@ -14,8 +14,8 @@ TelegramBot.start((ctx) => {
   ctx.reply(MESSAGE_REPLY.START_COMMAND, {
     reply_markup: {
       keyboard: MESSAGE_REPLY.KEYBOARD_START,
-      resize_keyboard: true
-    }
+      resize_keyboard: true,
+    },
   });
 });
 
@@ -93,4 +93,3 @@ Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
 });
 
 TelegramBot.launch();
-
