@@ -47,6 +47,40 @@ app.get("/check/domain", async (req, res) => {
   res.send("DOMAIN CHECKED");
 });
 
+app.get("/check/all", async (req, res) => {
+  logger.info("CRON RUNNING ALL...");
+  monitoringSSLExpired(
+    1000,
+    process.env.BOT_TOKEN,
+    process.env.GROUP_ID,
+    "SSL ALL INFO"
+  );
+  monitoringDomainExpired(
+    1000,
+    process.env.BOT_TOKEN,
+    process.env.GROUP_ID,
+    "DOMAIN ALL INFO"
+  );
+  res.send("ALL CHECKED");
+});
+
+app.get("/check/test", (req, res) => {
+  logger.info("CRON RUNNING ALL...");
+  monitoringSSLExpired(
+    1000,
+    process.env.BOT_TOKEN,
+    process.env.ID_MY,
+    "SSL ALL INFO"
+  );
+  monitoringDomainExpired(
+    1000,
+    process.env.BOT_TOKEN,
+    process.env.ID_MY,
+    "DOMAIN ALL INFO"
+  );
+  res.send("ALL TEST CHECKED");
+});
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
