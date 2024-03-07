@@ -15,11 +15,21 @@ const app = express();
 
 app.use(express.json());
 
+app.post(`/webhook/${process.env.BOT_TOKEN}`, (req, res) => {
+  TelegramBot.handleUpdate(req.body, res);
+  res.sendStatus(200);
+});
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-TelegramBot.start((ctx) => {
+if (process.env.NODE_ENV === "production") {
+  const webhookUrl = `${process.env.CYCLIC_URL}/webhook/${process.env.BOT_TOKEN}`;
+  TelegramBot.telegram.setWebhook(webhookUrl);
+}
+
+TelegramBot.start(ctx => {
   ctx.reply(MESSAGE_REPLY.START_COMMAND, {
     reply_markup: {
       keyboard: MESSAGE_REPLY.KEYBOARD_START,
@@ -28,23 +38,23 @@ TelegramBot.start((ctx) => {
   });
 });
 
-TelegramBot.hears("FORMAT", (ctx) => {
+TelegramBot.hears("FORMAT", ctx => {
   ctx.reply(MESSAGE_REPLY.FORMAT_COMMAND);
 });
 
-TelegramBot.hears(/^SSL#(.+)#(.+)#(.+)#(.+)#(.+)/, async (ctx) => {
+TelegramBot.hears(/^SSL#(.+)#(.+)#(.+)#(.+)#(.+)/, async ctx => {
   logger.info(ctx.message.text);
   const addedSsl = await actionServices.sslAction(ctx.message.text);
   ctx.reply(addedSsl);
 });
 
-TelegramBot.hears(/^DOMAIN#(.+)#(.+)#(.+)/, async (ctx) => {
+TelegramBot.hears(/^DOMAIN#(.+)#(.+)#(.+)/, async ctx => {
   logger.info(ctx.message.text);
   const addedDomain = await actionServices.domainAction(ctx.message.text);
   ctx.reply(addedDomain);
 });
 
-TelegramBot.hears("CEK SSL", (ctx) => {
+TelegramBot.hears("CEK SSL", ctx => {
   logger.info(ctx.message.text);
   monitoringSSLExpired(
     1000,
@@ -54,7 +64,7 @@ TelegramBot.hears("CEK SSL", (ctx) => {
   );
 });
 
-TelegramBot.hears("CEK DOMAIN", (ctx) => {
+TelegramBot.hears("CEK DOMAIN", ctx => {
   logger.info(ctx.message.text);
   monitoringDomainExpired(
     1000,
@@ -102,16 +112,6 @@ Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
 });
 
 const port = process.env.PORT || 3000;
-
-if (process.env.NODE_ENV === "production") {
-  logger.info("Bot is running on prod...");
-  TelegramBot.launch({
-    webhook: {
-      domain: process.env.CYCLIC_URL,
-      port: process.env.PORT,
-    },
-  });
-}
 
 logger.info("server running...");
 app.listen(port, () => {
