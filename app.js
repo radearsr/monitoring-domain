@@ -15,13 +15,11 @@ const app = express();
 
 app.use(express.json());
 
-app.use(
-  await bot.createWebhook({
-    domain: process.env.CYCLIC_URL,
-    port: 443,
-    path: "/webhook",
-  })
-);
+app.post(`/webhook`, (req, res) => {
+  logger.info(req.body);
+  TelegramBot.handleUpdate(req.body, res);
+  res.sendStatus(200);
+});
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
