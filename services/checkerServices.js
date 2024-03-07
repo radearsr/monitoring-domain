@@ -1,9 +1,8 @@
 const cheerio = require("cheerio");
 const axios = require("axios");
 const sslChecker = require("ssl-checker");
-const { formatDate } = require("../utils/dateUtils");
 
-exports.getInformationDomain = async domain => {
+exports.getInformationDomain = async (domain) => {
   try {
     const { data } = await axios.get(`https://www.whois.com/whois/${domain}`);
     const $ = cheerio.load(data);
