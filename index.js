@@ -1,6 +1,5 @@
 require("dotenv").config();
 const Cron = require("croner");
-const express = require("express");
 const { TelegramBot } = require("./services/telegrafServices");
 const { MESSAGE_REPLY } = require("./utils/replyMessageUtils");
 const actionServices = require("./services/actionServices");
@@ -9,71 +8,7 @@ const {
   monitoringDomainExpired,
   monitoringSSLExpired,
 } = require("./services/monitoringServices");
-const { getSSLStatus } = require("./services/checkerServices");
 const logger = require("./utils/loggingUtils");
-
-const app = express();
-
-app.use(express.json());
-
-app.get("/check/ssl", async (req, res) => {
-  logger.info("CRON RUNNING SSL...");
-  await senderServices.sendSelfAlert(
-    process.env.BOT_TOKEN,
-    process.env.ID_MY,
-    "Cron Running Gaiss..."
-  );
-  monitoringSSLExpired(
-    7,
-    process.env.BOT_TOKEN,
-    process.env.GROUP_ID,
-    "SSL ALERT"
-  );
-  res.send("SSL CHECKED");
-});
-
-app.get("/check/domain", async (req, res) => {
-  logger.info("CRON RUNNING SSL...");
-  await senderServices.sendSelfAlert(
-    process.env.BOT_TOKEN,
-    process.env.ID_MY,
-    "Cron Running Gaiss..."
-  );
-  monitoringDomainExpired(
-    7,
-    process.env.BOT_TOKEN,
-    process.env.GROUP_ID,
-    "DOMAIN ALERT"
-  );
-  res.send("DOMAIN CHECKED");
-});
-
-app.get("/check/all", async (req, res) => {
-  logger.info("CRON RUNNING ALL...");
-  monitoringSSLExpired(
-    1000,
-    process.env.BOT_TOKEN,
-    process.env.GROUP_ID,
-    "SSL ALL INFO"
-  );
-  monitoringDomainExpired(
-    1000,
-    process.env.BOT_TOKEN,
-    process.env.GROUP_ID,
-    "DOMAIN ALL INFO"
-  );
-  res.send("ALL CHECKED");
-});
-
-app.get("/check/test", async (req, res) => {
-  logger.info("CRON RUNNING ALL...");
-  const sslResult = await getSSLStatus("cetak.serverpmk.com", 443);
-  res.send(sslResult);
-});
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
 
 TelegramBot.start((ctx) => {
   ctx.reply(MESSAGE_REPLY.START_COMMAND, {
@@ -157,9 +92,4 @@ Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
   );
 });
 
-const port = process.env.PORT || 3000;
-
-logger.info("server running...");
-app.listen(port, () => {
-  logger.info(`App listening at ${port}`);
-});
+TelegramBot.launch();
