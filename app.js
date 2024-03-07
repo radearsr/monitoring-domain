@@ -15,10 +15,36 @@ const app = express();
 
 app.use(express.json());
 
-app.post(`/webhook`, (req, res) => {
-  logger.info(req.body);
-  TelegramBot.handleUpdate(req.body, res);
-  res.sendStatus(200);
+app.get("/check/ssl", async (req, res) => {
+  logger.info("CRON RUNNING SSL...");
+  await senderServices.sendSelfAlert(
+    process.env.BOT_TOKEN,
+    process.env.ID_MY,
+    "Cron Running Gaiss..."
+  );
+  monitoringSSLExpired(
+    7,
+    process.env.BOT_TOKEN,
+    process.env.GROUP_ID,
+    "SSL ALERT"
+  );
+  res.send("SSL CHECKED");
+});
+
+app.get("/check/domain", async (req, res) => {
+  logger.info("CRON RUNNING SSL...");
+  await senderServices.sendSelfAlert(
+    process.env.BOT_TOKEN,
+    process.env.ID_MY,
+    "Cron Running Gaiss..."
+  );
+  monitoringDomainExpired(
+    7,
+    process.env.BOT_TOKEN,
+    process.env.GROUP_ID,
+    "DOMAIN ALERT"
+  );
+  res.send("DOMAIN CHECKED");
 });
 
 app.get("/", (req, res) => {
@@ -108,16 +134,6 @@ Cron("0 0 9 * * 1", { timezone: "Asia/Jakarta" }, async () => {
 });
 
 const port = process.env.PORT || 3000;
-
-if (process.env.NODE_ENV === "production") {
-  bot.launch({
-    webhook: {
-      domain: process.env.CYCLIC_URL,
-      port: 443,
-      path: "/webhook",
-    },
-  });
-}
 
 logger.info("server running...");
 app.listen(port, () => {
