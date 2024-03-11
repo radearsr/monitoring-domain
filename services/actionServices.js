@@ -1,5 +1,6 @@
 const mysqlServices = require("./mysqlServices");
 const checker = require("./checkerServices");
+const sender = require("./senderServices");
 const { MESSAGE_REPLY } = require("../utils/replyMessageUtils");
 
 const createNewDomain = async (hosting, domain) => {
@@ -12,7 +13,9 @@ const createNewDomain = async (hosting, domain) => {
 };
 
 const createNewSslDomain = async (name, domain, port, tempat) => {
-  const availableSslDomain = await mysqlServices.checkAvailableSslDomain(domain);
+  const availableSslDomain = await mysqlServices.checkAvailableSslDomain(
+    domain
+  );
   if (availableSslDomain !== "MYSQL_SSL_DOMAIN_AVAILABLE") {
     await mysqlServices.insertIntoSslDomain(name, domain, port, tempat);
   }
@@ -20,18 +23,18 @@ const createNewSslDomain = async (name, domain, port, tempat) => {
   return MESSAGE_REPLY.SSL_ADD_SUCCESS(domain, port, resultChecker.expired);
 };
 
-exports.sslAction = async (text) => {
+exports.sslAction = async text => {
   try {
     console.log(text);
-    const [,action, name, domain, port, tempat] = text.split("#") || "";
+    const [, action, name, domain, port, tempat] = text.split("#") || "";
     switch (action) {
       case "ADD":
-        return await createNewSslDomain(name, domain, port, tempat);  
+        return await createNewSslDomain(name, domain, port, tempat);
       default:
         return MESSAGE_REPLY.ACTION_NOT_FOUND;
     }
   } catch (error) {
-    switch(error.message) {
+    switch (error.message) {
       case "MYSQL_INSERT_MAIN_DOMAIN_FAILED":
         return MESSAGE_REPLY.DOMAIN_ADD_FAILED;
       default:
@@ -40,9 +43,9 @@ exports.sslAction = async (text) => {
   }
 };
 
-exports.domainAction = async (text) => {
+exports.domainAction = async text => {
   try {
-    const [,action, hosting, domain] = text.split("#") || "";
+    const [, action, hosting, domain] = text.split("#") || "";
     switch (action) {
       case "ADD":
         return await createNewDomain(hosting, domain);
@@ -50,7 +53,12 @@ exports.domainAction = async (text) => {
         return MESSAGE_REPLY.ACTION_NOT_FOUND;
     }
   } catch (error) {
-    switch(error.message) {
+    if (error.message.includes("&-&")) {
+      const [domain, message] = error.message.split("&-&");
+      console.log(domain, message);
+      return MESSAGE_REPLY.DOMAIN_FAILED_RESPONSE(domain, message);
+    }
+    switch (error.message) {
       case "MYSQL_INSERT_MAIN_DOMAIN_FAILED":
         return MESSAGE_REPLY.DOMAIN_ADD_FAILED;
       default:

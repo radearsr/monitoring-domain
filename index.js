@@ -10,7 +10,7 @@ const {
 } = require("./services/monitoringServices");
 const logger = require("./utils/loggingUtils");
 
-TelegramBot.start((ctx) => {
+TelegramBot.start(ctx => {
   ctx.reply(MESSAGE_REPLY.START_COMMAND, {
     reply_markup: {
       keyboard: MESSAGE_REPLY.KEYBOARD_START,
@@ -19,23 +19,23 @@ TelegramBot.start((ctx) => {
   });
 });
 
-TelegramBot.hears("FORMAT", (ctx) => {
+TelegramBot.hears("FORMAT", ctx => {
   ctx.reply(MESSAGE_REPLY.FORMAT_COMMAND);
 });
 
-TelegramBot.hears(/^SSL#(.+)#(.+)#(.+)#(.+)#(.+)/, async (ctx) => {
+TelegramBot.hears(/^SSL#(.+)#(.+)#(.+)#(.+)#(.+)/, async ctx => {
   logger.info(ctx.message.text);
   const addedSsl = await actionServices.sslAction(ctx.message.text);
-  ctx.reply(addedSsl);
+  ctx.reply(addedSsl, { disable_web_page_preview: true });
 });
 
-TelegramBot.hears(/^DOMAIN#(.+)#(.+)#(.+)/, async (ctx) => {
+TelegramBot.hears(/^DOMAIN#(.+)#(.+)#(.+)/, async ctx => {
   logger.info(ctx.message.text);
   const addedDomain = await actionServices.domainAction(ctx.message.text);
   ctx.reply(addedDomain);
 });
 
-TelegramBot.hears("CEK SSL", (ctx) => {
+TelegramBot.hears("CEK SSL", ctx => {
   logger.info(ctx.message.text);
   monitoringSSLExpired(
     1000,
@@ -45,7 +45,7 @@ TelegramBot.hears("CEK SSL", (ctx) => {
   );
 });
 
-TelegramBot.hears("CEK DOMAIN", (ctx) => {
+TelegramBot.hears("CEK DOMAIN", ctx => {
   logger.info(ctx.message.text);
   monitoringDomainExpired(
     1000,

@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const ENDPOINT_MONITORING = process.env.ENDPOINT_MONITORING;
 
-exports.getInformationDomain = async (domain) => {
+exports.getInformationDomain = async domain => {
   try {
     const trimedDomain = domain.trim();
     const { data } = await axios.get(
@@ -13,8 +13,8 @@ exports.getInformationDomain = async (domain) => {
     );
     return data;
   } catch (error) {
-    console.log(error.response.data);
     if (axios.isAxiosError(error)) {
+      console.log(error.response.data);
       throw new Error(`&-&${domain}&-&${error.response.data.error}`);
     }
     throw new Error(`&-&${domain}&-&${error.message}`);
