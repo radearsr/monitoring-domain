@@ -60,7 +60,7 @@ Cron("0 0 7 * * *", { timezone: "Asia/Jakarta" }, async () => {
   await senderServices.sendSelfAlert(
     process.env.BOT_TOKEN,
     process.env.ID_MY,
-    "Cron Running Gaiss hari..."
+    "Cron Running hari ini..."
   );
   monitoringSSLExpired(
     7,
