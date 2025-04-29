@@ -11,17 +11,16 @@ const searchDetailSSLError = errorText => {
 };
 
 const sendWarningMessage = async (teleToken, teleMessageId, datas, title) => {
-  const parsingData = datas
-    .map(data => {
-      return `Nama       : ${data.value.nama}\nDomain   : ${data.value.domain}\nSisa Hari  : ${data.value.remaining} Hari\nIP PC         : ${data.value.tempat}\nExpired    : ${data.value.expired}\nSegera Lakukan Renew SSL!!\n`;
-    })
-    .join("\n");
-  const message = `>>>>>${title}<<<<<\n\n${parsingData}`;
-  await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
-    params: {
-      chat_id: teleMessageId,
-      text: message,
-    },
+  datas.forEach((data, index) => {
+    setTimeout(async () => {
+      const message = `>>>>>${title}<<<<<\n\nNama       : ${data.value.nama}\nDomain   : ${data.value.domain}\nSisa Hari  : ${data.value.remaining} Hari\nIP PC         : ${data.value.tempat}\nExpired    : ${data.value.expired}\nSegera Lakukan Renew SSL!!\n`;
+      await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
+        params: {
+          chat_id: teleMessageId,
+          text: message,
+        },
+      });
+    }, 3000 * index);
   });
 };
 
@@ -31,36 +30,34 @@ const sendErrorDomainMessage = async (
   datas,
   title
 ) => {
-  const parsingData = datas
-    .map(data => {
+  datas.forEach((data, index) => {
+    setTimeout(async () => {
       const { domain, message } = searchDetailDomainError(data.reason);
-      return `Mohon Akses Link Whois\nDomain   : ${domain}\nPesan : ${message}\nWhois  : https://www.whois.com/whois/${domain}\n`;
-    })
-    .join("\n");
-  const message = `>>>>>${title}<<<<<\n\n${parsingData}`;
-  await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
-    params: {
-      chat_id: teleMessageId,
-      text: message,
-      disable_web_page_preview: true,
-    },
+      const messageText = `>>>>>${title}<<<<<\n\nMohon Akses Link Whois\nDomain   : ${domain}\nPesan : ${message}\nWhois  : https://www.whois.com/whois/${domain}\n`;
+      await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
+        params: {
+          chat_id: teleMessageId,
+          text: messageText,
+          disable_web_page_preview: true,
+        },
+      });
+    }, index * 3000);
   });
 };
 
 const sendErrorSSLMessage = async (teleToken, teleMessageId, datas, title) => {
-  const parsingData = datas
-    .map(data => {
+  datas.forEach((data, index) => {
+    setTimeout(async () => {
       const { domain, port, message } = searchDetailSSLError(data.reason);
-      return `Web tidak bisa diakses\nDomain   : ${domain}\nPort  : ${port}\nPesan : ${message}`;
-    })
-    .join("\n");
-  const message = `>>>>>${title}<<<<<\n\n${parsingData}`;
-  await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
-    params: {
-      chat_id: teleMessageId,
-      text: message,
-      disable_web_page_preview: true,
-    },
+      const messageText = `>>>>>${title}<<<<<\n\nWeb tidak bisa diakses\nDomain   : ${domain}\nPort  : ${port}\nPesan : ${message}`;
+      await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
+        params: {
+          chat_id: teleMessageId,
+          text: messageText,
+          disable_web_page_preview: true,
+        },
+      });
+    }, index * 3000);
   });
 };
 
@@ -70,17 +67,16 @@ const sendWarningDomainMessage = async (
   datas,
   title
 ) => {
-  const parsingData = datas
-    .map(data => {
-      return `Hosting    : ${data.value.hosting}\nDomain   : ${data.value.domain}\nSisa Hari  : ${data.value.remaining} Hari\nExpired    : ${data.value.expired}\nSegera Perpanjang Domain!!\n`;
-    })
-    .join("\n");
-  const message = `>>>>>${title}<<<<<\n\n${parsingData}`;
-  await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
-    params: {
-      chat_id: teleMessageId,
-      text: message,
-    },
+  datas.forEach((data, index) => {
+    setTimeout(async () => {
+      const messageText = `>>>>>${title}<<<<<\n\nHosting    : ${data.value.hosting}\nDomain   : ${data.value.domain}\nSisa Hari  : ${data.value.remaining} Hari\nExpired    : ${data.value.expired}\nSegera Perpanjang Domain!!\n`;
+      await axios.get(`https://api.telegram.org/bot${teleToken}/sendMessage`, {
+        params: {
+          chat_id: teleMessageId,
+          text: messageText,
+        },
+      });
+    }, index * 3000);
   });
 };
 

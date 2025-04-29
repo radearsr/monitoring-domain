@@ -1,6 +1,5 @@
 const mysqlServices = require("./mysqlServices");
 const checker = require("./checkerServices");
-const sender = require("./senderServices");
 const { MESSAGE_REPLY } = require("../utils/replyMessageUtils");
 
 const createNewDomain = async (hosting, domain) => {
